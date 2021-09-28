@@ -76,7 +76,9 @@ class Word3D {
 		/** Loads the cube texture on the scene background */
 		this._scene.background = texture;
 
-		/** Mesh is used for any kind of 3d Object that will be placed in a Scene */
+		/** Mesh is used for any kind of 3d Object that will be placed in a Scene,
+		 * below we created a "ground" where we will place the 3D objects
+		 */
 		const plane = new THREE.Mesh(
 			new THREE.PlaneGeometry(100, 100, 1, 1),
 			new THREE.MeshStandardMaterial({
@@ -88,6 +90,20 @@ class Word3D {
 		plane.receiveShadow = true;
 		plane.rotation.x = -Math.PI / 2;
 		this._scene.add(plane);
+
+		/** Add an 3D object to the scene / ground */
+		const box = new THREE.Mesh(
+			new THREE.BoxGeometry(2, 2, 2),
+			new THREE.MeshStandardMaterial({
+				color: 0x43fae4,
+			})
+		);
+		box.position.set(0, 1, 0);
+		box.castShadow = true;
+		box.receiveShadow = true;
+
+		/** Adds the box into the scene */
+		this._scene.add(box);
 
 		this._RAF();
 	}
