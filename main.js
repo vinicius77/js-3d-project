@@ -1,5 +1,6 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.118/build/three.module.js';
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.118/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.121.1/examples/jsm/loaders/GLTFLoader.js';
 
 class Word3D {
 	constructor() {
@@ -105,7 +106,24 @@ class Word3D {
 		/** Adds the box into the scene */
 		this._scene.add(box);
 
+		this._LoadModel();
 		this._RAF();
+	}
+
+	/** Instanciating a loader */
+	_LoadModel() {
+		const loader = new GLTFLoader();
+		loader.load(
+			'./resources/rocket/Rocket_Ship_01.gltf',
+			(gltf) => {
+				gltf.scene.traverse((c) => {
+					c.castShadow = true;
+				});
+				this._scene.add(gltf.scene);
+			},
+			undefined,
+			(error) => console.log(error)
+		);
 	}
 
 	/** Resizing settings */
