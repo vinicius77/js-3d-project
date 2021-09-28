@@ -61,7 +61,7 @@ class Word3D {
 		controls.target.set(0, 0, 0);
 		controls.update();
 
-		/** Loads the skybox (Cube texture)
+		/** Loads the skybox (Cube texture) in the background
 		 * Special version of a texture but contain 6 sides (cube)*/
 		const loader = new THREE.CubeTextureLoader();
 		const texture = loader.load([
@@ -75,6 +75,19 @@ class Word3D {
 
 		/** Loads the cube texture on the scene background */
 		this._scene.background = texture;
+
+		/** Mesh is used for any kind of 3d Object that will be placed in a Scene */
+		const plane = new THREE.Mesh(
+			new THREE.PlaneGeometry(100, 100, 1, 1),
+			new THREE.MeshStandardMaterial({
+				color: 0xffffff,
+			})
+		);
+
+		plane.castShadow = false;
+		plane.receiveShadow = true;
+		plane.rotation.x = -Math.PI / 2;
+		this._scene.add(plane);
 
 		this._RAF();
 	}
