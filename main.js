@@ -2,6 +2,9 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.118/build/three.mod
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.118/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.121.1/examples/jsm/loaders/GLTFLoader.js';
 
+// For dynamic models
+import { FBXLoader } from 'https://cdn.jsdelivr.net/npm/three@0.118.1/examples/jsm/loaders/FBXLoader.js';
+
 class Word3D {
 	constructor() {
 		this._Initialize();
@@ -106,7 +109,13 @@ class Word3D {
 		/** Adds the box into the scene */
 		this._scene.add(box);
 
+		/** Static Model */
 		this._LoadModel();
+
+		/** Dynamic Model */
+		this._LoadAnimatedModel();
+
+		/** Request Animation Frame */
 		this._RAF();
 	}
 
@@ -126,6 +135,30 @@ class Word3D {
 			undefined,
 			(error) => console.log(error)
 		);
+	}
+
+	/** Dynamic 3D model */
+	_LoadAnimatedModel() {
+		const loader = new FBXLoader();
+		loader.setPath('./resources/soldier/');
+		loader.load('derrick.fbx', (fbx) => {
+			fbx.scale.setScalar(0.1);
+			fbx.traverse((c) => {
+				c.castShadow = true;
+			});
+
+			fbx.position.set(5, 0, 0);
+
+			const anim = new FBXLoader();
+			anim.setPath('./resources/soldier/');
+			anim.load('zombie_scream.fbx', (anim) => {
+				this._mixer = new THREE.AnimationMixer(fbx);
+				const idle = this._mixer.clipAction(anim.animations[0]);
+				idle.play();
+			});
+
+			this._scene.add(fbx);
+		});
 	}
 
 	/** Resizing settings */
