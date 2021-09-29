@@ -118,6 +118,8 @@ class Word3D {
 			(gltf) => {
 				gltf.scene.traverse((c) => {
 					c.castShadow = true;
+					c.position.set(0, 0, 10);
+					c.receiveShadow = true;
 				});
 				this._scene.add(gltf.scene);
 			},
