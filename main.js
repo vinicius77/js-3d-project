@@ -115,7 +115,7 @@ class Word3D {
 		/** Static Model */
 		this._LoadModel();
 
-		/** Dynamic Model */
+		/** Dynamic Models */
 		const zombieModel = {
 			path: './resources/zombie/',
 			baseModel: 'mremireh_o_desbiens.fbx',
@@ -123,6 +123,22 @@ class Word3D {
 			positionArr: [5, 0, 0],
 		};
 		this._LoadAnimatedModel(zombieModel);
+
+		const policeZombie = {
+			path: './resources/policeZombie/',
+			baseModel: 'derrick.fbx',
+			animation: 'zombie_scream.fbx',
+			positionArr: [33, 0, 0],
+		};
+		this._LoadAnimatedModel(policeZombie);
+
+		const soldier = {
+			path: './resources/soldier/',
+			baseModel: 'jumping_down.fbx',
+			animation: 'death_from_right.fbx',
+			positionArr: [-33, 0, 0],
+		};
+		this._LoadAnimatedModel(soldier);
 
 		/** Request Animation Frame */
 		this._RAF();
@@ -195,10 +211,10 @@ class Word3D {
 	}
 
 	_Step(timeElapsed) {
-		const timeElapsedInSecs = timeElapsed * 0.00001;
+		const timeElapsedInSecs = timeElapsed * 0.001;
 
 		if (this._mixers) {
-			this._mixers.map((mixer) => mixer.update(0.00001));
+			this._mixers.map((mixer) => mixer.update(timeElapsedInSecs));
 		}
 	}
 } /** end class */
