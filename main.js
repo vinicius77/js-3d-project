@@ -116,7 +116,13 @@ class Word3D {
 		this._LoadModel();
 
 		/** Dynamic Model */
-		this._LoadAnimatedModel();
+		const zombieModel = {
+			path: './resources/zombie/',
+			baseModel: 'mremireh_o_desbiens.fbx',
+			animation: 'dance.fbx',
+			positionArr: [5, 0, 0],
+		};
+		this._LoadAnimatedModel(zombieModel);
 
 		/** Request Animation Frame */
 		this._RAF();
@@ -141,20 +147,20 @@ class Word3D {
 	}
 
 	/** Dynamic 3D model */
-	_LoadAnimatedModel() {
+	_LoadAnimatedModel({ path, baseModel, animation, positionArr }) {
 		const loader = new FBXLoader();
-		loader.setPath('./resources/zombie/');
-		loader.load('mremireh_o_desbiens.fbx', (fbx) => {
+		loader.setPath(`${path}`);
+		loader.load(`${baseModel}`, (fbx) => {
 			fbx.scale.setScalar(0.1);
 			fbx.traverse((c) => {
 				c.castShadow = true;
 			});
 
-			//fbx.position.set(5, 0, 0);
+			fbx.position.set(positionArr[0], positionArr[1], positionArr[2]);
 
 			const anim = new FBXLoader();
-			anim.setPath('./resources/zombie/');
-			anim.load('dance.fbx', (anim) => {
+			anim.setPath(`${path}`);
+			anim.load(`${animation}`, (anim) => {
 				const mesh = new THREE.AnimationMixer(fbx);
 				this._mixers.push(mesh);
 
@@ -184,7 +190,7 @@ class Word3D {
 			this._RAF();
 			this._threejs.render(this._scene, this._camera);
 			this._Step(time - this._previousRAF);
-			this._previousRAF = t;
+			this._previousRAF = time;
 		});
 	}
 
@@ -192,7 +198,7 @@ class Word3D {
 		const timeElapsedInSecs = timeElapsed * 0.00001;
 
 		if (this._mixers) {
-			this._mixers.map((mixer) => mixer.update(timeElapsedInSecs));
+			this._mixers.map((mixer) => mixer.update(0.00001));
 		}
 	}
 } /** end class */
