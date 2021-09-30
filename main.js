@@ -57,7 +57,7 @@ class Word3D {
 
 		/** Adds the light to the scene */
 		this._scene.add(light);
-		light = new THREE.AmbientLight(0x404040);
+		light = new THREE.AmbientLight(0x404040, 5.0);
 		this._scene.add(light);
 
 		/** Orbit controls allow the camera to orbit around a target */
@@ -109,6 +109,9 @@ class Word3D {
 		/** Adds the box into the scene */
 		this._scene.add(box);
 
+		this._mixers = [];
+		this._previousRAF = null;
+
 		/** Static Model */
 		this._LoadModel();
 
@@ -140,20 +143,22 @@ class Word3D {
 	/** Dynamic 3D model */
 	_LoadAnimatedModel() {
 		const loader = new FBXLoader();
-		loader.setPath('./resources/soldier/');
-		loader.load('derrick.fbx', (fbx) => {
+		loader.setPath('./resources/zombie/');
+		loader.load('mremireh_o_desbiens.fbx', (fbx) => {
 			fbx.scale.setScalar(0.1);
 			fbx.traverse((c) => {
 				c.castShadow = true;
 			});
 
-			fbx.position.set(5, 0, 0);
+			//fbx.position.set(5, 0, 0);
 
 			const anim = new FBXLoader();
-			anim.setPath('./resources/soldier/');
-			anim.load('zombie_scream.fbx', (anim) => {
-				this._mixer = new THREE.AnimationMixer(fbx);
-				const idle = this._mixer.clipAction(anim.animations[0]);
+			anim.setPath('./resources/zombie/');
+			anim.load('dance.fbx', (anim) => {
+				const mesh = new THREE.AnimationMixer(fbx);
+				this._mixers.push(mesh);
+
+				const idle = mesh.clipAction(anim.animations[0]);
 				idle.play();
 			});
 
@@ -171,12 +176,26 @@ class Word3D {
 	/** Request Animation Frame
 	 * It is recursive call because it re renders at every frame */
 	_RAF() {
-		requestAnimationFrame(() => {
-			this._threejs.render(this._scene, this._camera);
+		requestAnimationFrame((time) => {
+			if (this._previousRAF === null) {
+				this._previousRAF = time;
+			}
+
 			this._RAF();
+			this._threejs.render(this._scene, this._camera);
+			this._Step(time - this._previousRAF);
+			this._previousRAF = t;
 		});
 	}
-}
+
+	_Step(timeElapsed) {
+		const timeElapsedInSecs = timeElapsed * 0.00001;
+
+		if (this._mixers) {
+			this._mixers.map((mixer) => mixer.update(timeElapsedInSecs));
+		}
+	}
+} /** end class */
 
 let _APP = null;
 
