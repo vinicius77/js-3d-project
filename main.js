@@ -1,9 +1,152 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.118/build/three.module.js';
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.118/examples/jsm/controls/OrbitControls.js';
-import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.121.1/examples/jsm/loaders/GLTFLoader.js';
+//import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.121.1/examples/jsm/loaders/GLTFLoader.js';
 
 // For dynamic models
 import { FBXLoader } from 'https://cdn.jsdelivr.net/npm/three@0.118.1/examples/jsm/loaders/FBXLoader.js';
+
+class BasicModelControls {
+	constructor(params) {
+		this._Init(params);
+	}
+
+	_Init(params) {
+		this._params = params;
+		this._move = {
+			forward: false,
+			backward: false,
+			left: false,
+			right: false,
+		};
+
+		/** A Vector3 is used to represent most values which have x, y, and z coordinates,
+		 * so you can use it to animate many object transforms like position, scale, or rotation. */
+		this._decceleration = new THREE.Vector3(-0.0005, -0.0001, -5.0);
+		this._acceleration = new THREE.Vector3(1, 0.25, 50.0);
+		this._velocity = new THREE.Vector3(0, 0, 0);
+
+		document.addEventListener('keydown', ({ key }) => this._onKeyDown(key), false);
+		document.addEventListener('keyup', ({ key }) => this._onKeyUp(key), false);
+	}
+
+	/** Keyboard events */
+	_onKeyDown(key) {
+		switch (key) {
+			case 'w':
+				this._move.forward = true;
+				break;
+			case 'a':
+				this._move.left = true;
+				break;
+			case 's':
+				this._move.backward = true;
+				break;
+			case 'd':
+				this._move.right = true;
+			case 'ArrowUp':
+			case 'ArrowLeft':
+			case 'ArrowDown':
+			case 'ArrowRight':
+				break;
+			default:
+				break;
+		}
+	}
+
+	_onKeyUp(key) {
+		switch (key) {
+			case 'w':
+				this._move.forward = false;
+				break;
+			case 'a':
+				this._move.left = false;
+				break;
+			case 's':
+				this._move.backward = false;
+				break;
+			case 'd':
+				this._move.right = false;
+			case 'ArrowUp':
+			case 'ArrowLeft':
+			case 'ArrowDown':
+			case 'ArrowRight':
+				break;
+			default:
+				break;
+		}
+	}
+
+	/** Updates at every frame */
+	Update(timeInSeconds) {
+		const velocity = this._velocity;
+		const frameDecceleration = new THREE.Vector3(
+			velocity.x * this._decceleration.x,
+			velocity.y * this._decceleration.y,
+			velocity.z * this._decceleration.z
+		);
+
+		/** Multiplies this vector by scalar s */
+		frameDecceleration.multiplyScalar(timeInSeconds);
+
+		/** The Math.sign() function returns either a positive or negative
+		 *  +/- 1, indicating the sign of a number passed into the argument */
+		frameDecceleration.z =
+			Math.sign(frameDecceleration.z) *
+			Math.min(Math.abs(frameDecceleration.z, Math.abs(velocity.z)));
+
+		velocity.add(frameDecceleration);
+
+		const controlObject = this._params.target;
+
+		/** Quartenion describes orientation of an object or a vector. They are efficient
+		 * and well suited to solve rotation and orientation problems in computer graphics
+		 * and animation */
+		const _Quart = new THREE.Quartenion();
+		const _Arr = new THREE.Vector3();
+		const _R = new controlObject.quartenion().clone();
+
+		if (this._move.forward) {
+			velocity.z += this._acceleration.z * timeInSeconds;
+		}
+
+		if (this._move.backward) {
+			velocity.z -= this._acceleration.z * timeInSeconds;
+		}
+
+		if (this._move.left) {
+			_Arr.set(0, 1, 0);
+			_Quart.setFromAxisAngle(_Arr, Math.PI * timeInSeconds * this._acceleration.y);
+			_R.multiply(_Quart);
+		}
+
+		if (this._move.right) {
+			_Arr.set(0, 1, 0);
+			_Quart.setFromAxisAngle(_Arr, -Math.PI * timeInSeconds * this._acceleration.y);
+			_R.multiply(_Quart);
+		}
+
+		controlObject.quartenion.copy(_R);
+
+		const oldPosition = new THREE.Vector3();
+		oldPosition.copy(controlObject.position);
+
+		const forward = new THREE.Vector3(0, 0, 1);
+		forward.applyQuartenion(controlObject.quartenion);
+		forward.normalize();
+
+		const sideways = new THREE.Vector3(1, 0, 0);
+		sideways.applyQuartenion(controlObject.quartenion);
+		sideways.normalize();
+
+		sideways.multiplyScalar(velocity.x * timeInSeconds);
+		forward.multiplyScalar(velocity.z * timeInSeconds);
+
+		controlObject.position.add(forward);
+		controlObject.position.add(sideways);
+
+		oldPosition.copy(controlObject.position);
+	}
+}
 
 class Word3D {
 	constructor() {
@@ -102,7 +245,7 @@ class Word3D {
 		const soldier = {
 			path: './resources/soldier/',
 			baseModel: 'jumping_down.fbx',
-			animation: 'death_from_right.fbx',
+			animation: 'rifle_turn_and_kick.fbx',
 			positionArr: [-33, 0, 0],
 		};
 		this._LoadAnimatedModel(soldier);
@@ -121,7 +264,16 @@ class Word3D {
 				c.castShadow = true;
 			});
 
+			/** Model's position relative to the ground */
 			fbx.position.set(positionArr[0], positionArr[1], positionArr[2]);
+
+			const params = {
+				target: fbx,
+				camera: this._camera,
+			};
+
+			// Pass the fbx as a parameter to the modelControls class
+			this._controls = new BasicModelControls(params);
 
 			const anim = new FBXLoader();
 			anim.setPath(`${path}`);
@@ -164,6 +316,11 @@ class Word3D {
 
 		if (this._mixers) {
 			this._mixers.map((mixer) => mixer.update(timeElapsedInSecs));
+		}
+
+		/** Also updates the timing on basic controls  */
+		if (this._controls) {
+			this._controls.Update(timeElapsedInSecs);
 		}
 	}
 } /** end class */
