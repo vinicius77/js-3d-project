@@ -89,7 +89,7 @@ class BasicModelControls {
 		frameDecceleration.multiplyScalar(timeInSeconds);
 
 		/** The Math.sign() function returns either a positive or negative
-		 *  +/- 1, indicating the sign of a number passed into the argument */
+-   *  +/- 1, indicating the sign of a number passed into the argument */
 		frameDecceleration.z =
 			Math.sign(frameDecceleration.z) *
 			Math.min(Math.abs(frameDecceleration.z, Math.abs(velocity.z)));
@@ -99,43 +99,40 @@ class BasicModelControls {
 		const controlObject = this._params.target;
 
 		/** Quartenion describes orientation of an object or a vector. They are efficient
-		 * and well suited to solve rotation and orientation problems in computer graphics
-		 * and animation */
-		const _Quart = new THREE.Quartenion();
-		const _Arr = new THREE.Vector3();
-		const _R = new controlObject.quartenion().clone();
+-   * and well suited to solve rotation and orientation problems in computer graphics
+-   * and animation */
+		const _Q = new THREE.Quaternion();
+		const _A = new THREE.Vector3();
+		const _R = controlObject.quaternion.clone();
 
 		if (this._move.forward) {
 			velocity.z += this._acceleration.z * timeInSeconds;
 		}
-
 		if (this._move.backward) {
 			velocity.z -= this._acceleration.z * timeInSeconds;
 		}
-
 		if (this._move.left) {
-			_Arr.set(0, 1, 0);
-			_Quart.setFromAxisAngle(_Arr, Math.PI * timeInSeconds * this._acceleration.y);
-			_R.multiply(_Quart);
+			_A.set(0, 1, 0);
+			_Q.setFromAxisAngle(_A, Math.PI * timeInSeconds * this._acceleration.y);
+			_R.multiply(_Q);
 		}
-
 		if (this._move.right) {
-			_Arr.set(0, 1, 0);
-			_Quart.setFromAxisAngle(_Arr, -Math.PI * timeInSeconds * this._acceleration.y);
-			_R.multiply(_Quart);
+			_A.set(0, 1, 0);
+			_Q.setFromAxisAngle(_A, -Math.PI * timeInSeconds * this._acceleration.y);
+			_R.multiply(_Q);
 		}
 
-		controlObject.quartenion.copy(_R);
+		controlObject.quaternion.copy(_R);
 
 		const oldPosition = new THREE.Vector3();
 		oldPosition.copy(controlObject.position);
 
 		const forward = new THREE.Vector3(0, 0, 1);
-		forward.applyQuartenion(controlObject.quartenion);
+		forward.applyQuaternion(controlObject.quaternion);
 		forward.normalize();
 
 		const sideways = new THREE.Vector3(1, 0, 0);
-		sideways.applyQuartenion(controlObject.quartenion);
+		sideways.applyQuaternion(controlObject.quaternion);
 		sideways.normalize();
 
 		sideways.multiplyScalar(velocity.x * timeInSeconds);
@@ -242,13 +239,21 @@ class Word3D {
 		this._previousRAF = null;
 
 		/** Dynamic Models */
-		const soldier = {
-			path: './resources/soldier/',
-			baseModel: 'jumping_down.fbx',
-			animation: 'rifle_turn_and_kick.fbx',
+		const zombie = {
+			path: './resources/zombie/',
+			baseModel: 'mremireh_o_desbiens.fbx',
+			animation: 'walk.fbx',
 			positionArr: [-33, 0, 0],
 		};
-		this._LoadAnimatedModel(soldier);
+		this._LoadAnimatedModel(zombie);
+
+		/*const soldier = {
+			path: './resources/soldier/',
+			baseModel: 'walking.fbx',
+			animation: 'rifle_turn_and_kick.fbx',
+			positionArr: [-53, 0, 0],
+		};
+		this._LoadAnimatedModel(soldier);*/
 
 		/** Request Animation Frame */
 		this._RAF();
