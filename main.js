@@ -95,43 +95,10 @@ class Word3D {
 		plane.rotation.x = -Math.PI / 2;
 		this._scene.add(plane);
 
-		/** Add an 3D object to the scene / ground */
-		const box = new THREE.Mesh(
-			new THREE.BoxGeometry(2, 2, 2),
-			new THREE.MeshStandardMaterial({
-				color: 0x43fae4,
-			})
-		);
-		box.position.set(0, 1, 0);
-		box.castShadow = true;
-		box.receiveShadow = true;
-
-		/** Adds the box into the scene */
-		this._scene.add(box);
-
 		this._mixers = [];
 		this._previousRAF = null;
 
-		/** Static Model */
-		this._LoadModel();
-
 		/** Dynamic Models */
-		const zombieModel = {
-			path: './resources/zombie/',
-			baseModel: 'mremireh_o_desbiens.fbx',
-			animation: 'dance.fbx',
-			positionArr: [5, 0, 0],
-		};
-		this._LoadAnimatedModel(zombieModel);
-
-		const policeZombie = {
-			path: './resources/policeZombie/',
-			baseModel: 'derrick.fbx',
-			animation: 'zombie_scream.fbx',
-			positionArr: [33, 0, 0],
-		};
-		this._LoadAnimatedModel(policeZombie);
-
 		const soldier = {
 			path: './resources/soldier/',
 			baseModel: 'jumping_down.fbx',
@@ -142,24 +109,6 @@ class Word3D {
 
 		/** Request Animation Frame */
 		this._RAF();
-	}
-
-	/** Instanciating a loader */
-	_LoadModel() {
-		const loader = new GLTFLoader();
-		loader.load(
-			'./resources/rocket/Rocket_Ship_01.gltf',
-			(gltf) => {
-				gltf.scene.traverse((c) => {
-					c.castShadow = true;
-					c.position.set(0, 0, 10);
-					c.receiveShadow = true;
-				});
-				this._scene.add(gltf.scene);
-			},
-			undefined,
-			(error) => console.log(error)
-		);
 	}
 
 	/** Dynamic 3D model */
