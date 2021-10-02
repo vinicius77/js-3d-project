@@ -5,25 +5,18 @@ import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.118/examples
 // For dynamic models
 import { FBXLoader } from 'https://cdn.jsdelivr.net/npm/three@0.118.1/examples/jsm/loaders/FBXLoader.js';
 
-class BasicModelControls {
-	constructor(params) {
-		this._Init(params);
+class CharacterControllerInput {
+	constructor() {
+		this._Init();
 	}
 
-	_Init(params) {
-		this._params = params;
+	_Init() {
 		this._move = {
 			forward: false,
 			backward: false,
 			left: false,
 			right: false,
 		};
-
-		/** A Vector3 is used to represent most values which have x, y, and z coordinates,
-		 * so you can use it to animate many object transforms like position, scale, or rotation. */
-		this._decceleration = new THREE.Vector3(-0.0005, -0.0001, -5.0);
-		this._acceleration = new THREE.Vector3(1, 0.25, 50.0);
-		this._velocity = new THREE.Vector3(0, 0, 0);
 
 		document.addEventListener('keydown', ({ key }) => this._onKeyDown(key), false);
 		document.addEventListener('keyup', ({ key }) => this._onKeyUp(key), false);
@@ -74,6 +67,22 @@ class BasicModelControls {
 			default:
 				break;
 		}
+	}
+}
+
+class BasicModelControls {
+	constructor(params) {
+		this._Init(params);
+	}
+
+	_Init(params) {
+		this._params = params;
+
+		/** A Vector3 is used to represent most values which have x, y, and z coordinates,
+		 * so you can use it to animate many object transforms like position, scale, or rotation. */
+		this._decceleration = new THREE.Vector3(-0.0005, -0.0001, -5.0);
+		this._acceleration = new THREE.Vector3(1, 0.25, 50.0);
+		this._velocity = new THREE.Vector3(0, 0, 0);
 	}
 
 	/** Updates at every frame */
@@ -145,6 +154,41 @@ class BasicModelControls {
 	}
 }
 
+class ThirdPersonCamera {
+	constructor(params) {
+		this._params = params;
+		this._camera = params.camera;
+
+		/** tracks the current position of the camera and looking at */
+		this._currentPosition = new THREE.Vector3();
+		this._currentLookAt = new THREE.Vector3();
+	}
+
+	_CalculateOffset(coordinates) {
+		const [x, y, z] = coordinates;
+		const offset = new THREE.Vector3(x, y, z);
+		/** copies the character orientation because the offset is in local space*/
+		offset.applyQuaternion(this._params.target.Rotation);
+
+		/** sets the position */
+		offset.add(this._params.target.Position);
+		return offset;
+	}
+
+	Update(timeElapsed) {
+		const idealOffSet = this._CalculateOffset([-15, 20, -30]);
+		const idealLookAt = this._CalculateOffset([0, 10, 50]);
+
+		this._currentPosition.copy(idealOffSet);
+		this._currentLookAt.copy(idealLookAt);
+
+		/** Orienting the camera */
+		this._camera.position.copy(this._currentPosition);
+		this._camera.lookAt(this._currentLookAt);
+	}
+}
+
+/** MAIN CLASS :) */
 class Word3D {
 	constructor() {
 		this._Initialize();
@@ -185,7 +229,7 @@ class Word3D {
 		light.position.set(100, 100, 100);
 		light.target.position.set(0, 0, 0);
 		light.castShadow = true;
-		light.shadow.bias = -0.01;
+		light.shadow.bias = -0.001;
 		light.shadow.mapSize.width = 2048;
 		light.shadow.mapSize.height = 2048;
 		light.shadow.camera.near = 1.0;
@@ -197,7 +241,7 @@ class Word3D {
 
 		/** Adds the light to the scene */
 		this._scene.add(light);
-		light = new THREE.AmbientLight(0x404040, 5.0);
+		light = new THREE.AmbientLight(0x404040, 0.2);
 		this._scene.add(light);
 
 		/** Orbit controls allow the camera to orbit around a target */
@@ -280,6 +324,12 @@ class Word3D {
 			// Pass the fbx as a parameter to the modelControls class
 			this._controls = new BasicModelControls(params);
 
+			// 3rd person camera settings
+			this._thirdPersonCam = new ThirdPersonCamera({
+				camera: this._camera,
+				target: fbx,
+			});
+
 			const anim = new FBXLoader();
 			anim.setPath(`${path}`);
 			anim.load(`${animation}`, (anim) => {
@@ -327,7 +377,14 @@ class Word3D {
 		if (this._controls) {
 			this._controls.Update(timeElapsedInSecs);
 		}
+
+		/** Updates 3rd person camera each frame, e.g. if the player moves the
+		 * update function will get this movement and smoothly move to follow the chracter */
+		if (this._thirdPersonCam) {
+			this._thirdPersonCam.Update(timeElapsedInSecs);
+		}
 	}
+	a;
 } /** end class */
 
 let _APP = null;
