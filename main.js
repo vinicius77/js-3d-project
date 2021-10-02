@@ -83,6 +83,72 @@ class BasicModelControls {
 		this._decceleration = new THREE.Vector3(-0.0005, -0.0001, -5.0);
 		this._acceleration = new THREE.Vector3(1, 0.25, 50.0);
 		this._velocity = new THREE.Vector3(0, 0, 0);
+		this._position = new THREE.Vector3();
+		this._input = new CharacterControllerInput();
+		this._mixers = [];
+		this._target;
+
+		/** Dynamic Models */
+		const zombie = {
+			path: './resources/zombie/',
+			baseModel: 'mremireh_o_desbiens.fbx',
+			animation: 'walk.fbx',
+			positionArr: [-33, 0, 0],
+		};
+		this._LoadModels(zombie);
+	}
+
+	/** Dynamic 3D model */
+	_LoadModels({ path, baseModel, animation, positionArr }) {
+		const loader = new FBXLoader();
+		loader.setPath(`${path}`);
+		loader.load(`${baseModel}`, (fbx) => {
+			fbx.scale.setScalar(0.1);
+			fbx.traverse((c) => {
+				c.castShadow = true;
+			});
+
+			/** Model's position relative to the ground */
+			fbx.position.set(positionArr[0], positionArr[1], positionArr[2]);
+
+			//const params = {
+			//	target: fbx,
+			//	camera: this._camera,
+			//};
+
+			// Pass the fbx as a parameter to the modelControls class
+			//this._controls = new BasicModelControls(params);
+
+			// 3rd person camera settings
+			//this._thirdPersonCam = new ThirdPersonCamera({
+			//	camera: this._camera,
+			//	target: fbx,
+			//});
+
+			const anim = new FBXLoader();
+			anim.setPath(`${path}`);
+			anim.load(`${animation}`, (anim) => {
+				const mesh = new THREE.AnimationMixer(fbx);
+				this._mixers.push(mesh);
+
+				const idle = mesh.clipAction(anim.animations[0]);
+				idle.play();
+			});
+			this._target = fbx;
+			this._params.scene.add(fbx);
+		});
+	}
+
+	get Position() {
+		return this._position;
+	}
+
+	get Rotation() {
+		if (!this._target) {
+			return new THREE.Quaternion();
+		}
+
+		return this._target.quaternion;
 	}
 
 	/** Updates at every frame */
@@ -105,52 +171,57 @@ class BasicModelControls {
 
 		velocity.add(frameDecceleration);
 
-		const controlObject = this._params.target;
+		const controlObject = this._target;
 
 		/** Quartenion describes orientation of an object or a vector. They are efficient
 -   * and well suited to solve rotation and orientation problems in computer graphics
 -   * and animation */
+
 		const _Q = new THREE.Quaternion();
 		const _A = new THREE.Vector3();
-		const _R = controlObject.quaternion.clone();
 
-		if (this._move.forward) {
-			velocity.z += this._acceleration.z * timeInSeconds;
+		if (controlObject) {
+			const _R = controlObject.quaternion.clone();
+
+			if (this._input._move.forward) {
+				velocity.z += this._acceleration.z * timeInSeconds;
+			}
+			if (this._input._move.backward) {
+				velocity.z -= this._acceleration.z * timeInSeconds;
+			}
+			if (this._input._move.left) {
+				_A.set(0, 1, 0);
+				_Q.setFromAxisAngle(_A, Math.PI * timeInSeconds * this._acceleration.y);
+				_R.multiply(_Q);
+			}
+			if (this._input._move.right) {
+				_A.set(0, 1, 0);
+				_Q.setFromAxisAngle(_A, -Math.PI * timeInSeconds * this._acceleration.y);
+				_R.multiply(_Q);
+			}
+
+			controlObject.quaternion.copy(_R);
+
+			const oldPosition = new THREE.Vector3();
+			oldPosition.copy(controlObject.position);
+
+			const forward = new THREE.Vector3(0, 0, 1);
+			forward.applyQuaternion(controlObject.quaternion);
+			forward.normalize();
+
+			const sideways = new THREE.Vector3(1, 0, 0);
+			sideways.applyQuaternion(controlObject.quaternion);
+			sideways.normalize();
+
+			sideways.multiplyScalar(velocity.x * timeInSeconds);
+			forward.multiplyScalar(velocity.z * timeInSeconds);
+
+			controlObject.position.add(forward);
+			controlObject.position.add(sideways);
+
+			this._position.copy(controlObject.position);
+			oldPosition.copy(controlObject.position);
 		}
-		if (this._move.backward) {
-			velocity.z -= this._acceleration.z * timeInSeconds;
-		}
-		if (this._move.left) {
-			_A.set(0, 1, 0);
-			_Q.setFromAxisAngle(_A, Math.PI * timeInSeconds * this._acceleration.y);
-			_R.multiply(_Q);
-		}
-		if (this._move.right) {
-			_A.set(0, 1, 0);
-			_Q.setFromAxisAngle(_A, -Math.PI * timeInSeconds * this._acceleration.y);
-			_R.multiply(_Q);
-		}
-
-		controlObject.quaternion.copy(_R);
-
-		const oldPosition = new THREE.Vector3();
-		oldPosition.copy(controlObject.position);
-
-		const forward = new THREE.Vector3(0, 0, 1);
-		forward.applyQuaternion(controlObject.quaternion);
-		forward.normalize();
-
-		const sideways = new THREE.Vector3(1, 0, 0);
-		sideways.applyQuaternion(controlObject.quaternion);
-		sideways.normalize();
-
-		sideways.multiplyScalar(velocity.x * timeInSeconds);
-		forward.multiplyScalar(velocity.z * timeInSeconds);
-
-		controlObject.position.add(forward);
-		controlObject.position.add(sideways);
-
-		oldPosition.copy(controlObject.position);
 	}
 }
 
@@ -202,6 +273,7 @@ class Word3D {
 		this._threejs.shadowMap.type = THREE.PCFSoftShadowMap;
 		this._threejs.setPixelRatio(window.devicePixelRatio);
 		this._threejs.setSize(window.innerWidth, window.innerHeight);
+		this._mixers = [];
 
 		document.body.appendChild(this._threejs.domElement);
 
@@ -244,10 +316,10 @@ class Word3D {
 		light = new THREE.AmbientLight(0x404040, 0.2);
 		this._scene.add(light);
 
-		/** Orbit controls allow the camera to orbit around a target */
-		const controls = new OrbitControls(this._camera, this._threejs.domElement);
-		controls.target.set(0, 0, 0);
-		controls.update();
+		/** Orbit controls allow the camera to orbit around a target, with the mouse, for example*/
+		//const controls = new OrbitControls(this._camera, this._threejs.domElement);
+		//controls.target.set(0, 0, 0);
+		//controls.update();
 
 		/** Loads the skybox (Cube texture) in the background
 		 * Special version of a texture but contain 6 sides (cube)*/
@@ -279,17 +351,7 @@ class Word3D {
 		plane.rotation.x = -Math.PI / 2;
 		this._scene.add(plane);
 
-		this._mixers = [];
 		this._previousRAF = null;
-
-		/** Dynamic Models */
-		const zombie = {
-			path: './resources/zombie/',
-			baseModel: 'mremireh_o_desbiens.fbx',
-			animation: 'walk.fbx',
-			positionArr: [-33, 0, 0],
-		};
-		this._LoadAnimatedModel(zombie);
 
 		/*const soldier = {
 			path: './resources/soldier/',
@@ -299,48 +361,26 @@ class Word3D {
 		};
 		this._LoadAnimatedModel(soldier);*/
 
+		this._LoadAnimatedModel();
+
 		/** Request Animation Frame */
 		this._RAF();
 	}
 
-	/** Dynamic 3D model */
-	_LoadAnimatedModel({ path, baseModel, animation, positionArr }) {
-		const loader = new FBXLoader();
-		loader.setPath(`${path}`);
-		loader.load(`${baseModel}`, (fbx) => {
-			fbx.scale.setScalar(0.1);
-			fbx.traverse((c) => {
-				c.castShadow = true;
-			});
+	_LoadAnimatedModel() {
+		const params = {
+			camera: this._camera,
+			scene: this._scene,
+		};
 
-			/** Model's position relative to the ground */
-			fbx.position.set(positionArr[0], positionArr[1], positionArr[2]);
+		this._controls = new BasicModelControls(params);
 
-			const params = {
-				target: fbx,
-				camera: this._camera,
-			};
+		/** Workaround master :) */
+		this._mixers = this._controls._mixers;
 
-			// Pass the fbx as a parameter to the modelControls class
-			this._controls = new BasicModelControls(params);
-
-			// 3rd person camera settings
-			this._thirdPersonCam = new ThirdPersonCamera({
-				camera: this._camera,
-				target: fbx,
-			});
-
-			const anim = new FBXLoader();
-			anim.setPath(`${path}`);
-			anim.load(`${animation}`, (anim) => {
-				const mesh = new THREE.AnimationMixer(fbx);
-				this._mixers.push(mesh);
-
-				const idle = mesh.clipAction(anim.animations[0]);
-				idle.play();
-			});
-
-			this._scene.add(fbx);
+		this._thirdPersonCam = new ThirdPersonCamera({
+			camera: this._camera,
+			target: this._controls,
 		});
 	}
 
@@ -380,11 +420,9 @@ class Word3D {
 
 		/** Updates 3rd person camera each frame, e.g. if the player moves the
 		 * update function will get this movement and smoothly move to follow the chracter */
-		if (this._thirdPersonCam) {
-			this._thirdPersonCam.Update(timeElapsedInSecs);
-		}
+
+		this._thirdPersonCam.Update(timeElapsedInSecs);
 	}
-	a;
 } /** end class */
 
 let _APP = null;
