@@ -1,6 +1,4 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.118/build/three.module.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.118/examples/jsm/controls/OrbitControls.js';
-//import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.121.1/examples/jsm/loaders/GLTFLoader.js';
 
 // For dynamic models
 import { FBXLoader } from 'https://cdn.jsdelivr.net/npm/three@0.118.1/examples/jsm/loaders/FBXLoader.js';
@@ -110,20 +108,6 @@ class BasicModelControls {
 
 			/** Model's position relative to the ground */
 			fbx.position.set(positionArr[0], positionArr[1], positionArr[2]);
-
-			//const params = {
-			//	target: fbx,
-			//	camera: this._camera,
-			//};
-
-			// Pass the fbx as a parameter to the modelControls class
-			//this._controls = new BasicModelControls(params);
-
-			// 3rd person camera settings
-			//this._thirdPersonCam = new ThirdPersonCamera({
-			//	camera: this._camera,
-			//	target: fbx,
-			//});
 
 			const anim = new FBXLoader();
 			anim.setPath(`${path}`);
@@ -316,11 +300,6 @@ class Word3D {
 		light = new THREE.AmbientLight(0x404040, 0.2);
 		this._scene.add(light);
 
-		/** Orbit controls allow the camera to orbit around a target, with the mouse, for example*/
-		//const controls = new OrbitControls(this._camera, this._threejs.domElement);
-		//controls.target.set(0, 0, 0);
-		//controls.update();
-
 		/** Loads the skybox (Cube texture) in the background
 		 * Special version of a texture but contain 6 sides (cube)*/
 		const loader = new THREE.CubeTextureLoader();
@@ -352,14 +331,6 @@ class Word3D {
 		this._scene.add(plane);
 
 		this._previousRAF = null;
-
-		/*const soldier = {
-			path: './resources/soldier/',
-			baseModel: 'walking.fbx',
-			animation: 'rifle_turn_and_kick.fbx',
-			positionArr: [-53, 0, 0],
-		};
-		this._LoadAnimatedModel(soldier);*/
 
 		this._LoadAnimatedModel();
 
